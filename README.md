@@ -1,22 +1,22 @@
 # gleam-php
 
-Gleam-PHP 是一款简洁的极速开发框架，本框架核心代码参考 ThinkPHP 实现。
+Gleam-PHP 是一款简洁的极速开发框架，本框架核心代码源自 ThinkPHP。
 
 ## 主要特性
 
 * 轻量级。
 * 兼容ThinkPHP。
+* 集成RPC服务，可开发分布式、微服务应用。
+* 集成数据视图服务，可快速生成管理后台。
 
 ## 安装
 
 ```
-composer require rxiaob/gleam-php
-```
-
-或
-
-```
 composer create-project rxiaob/gleam-php gleam
+```
+或者
+```
+composer require rxiaob/gleam-php
 ```
 
 ## 特别鸣谢
