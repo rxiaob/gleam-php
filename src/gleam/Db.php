@@ -85,25 +85,4 @@ class Db extends DbManager
         return $db;
     }
 
-    /**
-     * 分页查询
-     * @param string $name 表名
-     * @param int $index 页索引
-     * @param int $size 页大小
-     * @param mixed $field 查询字段
-     * @param mixed $where 查询条件
-     * @param mixed $order 查询排序
-     * @return array
-     */
-    public static function page1($name, $index, $size, $field = '*', $where = null, $order = null)
-    {
-        $result = db($name)->fetchSql(false)->field($field)->where(array_filter($where ?? []))->order($order)->paginate([
-            'list_rows' => $size,
-            'page' => $index
-        ]);
-        $list = $result->items();
-        $count = $result->total();
-        return ['rows' => $list, 'count' => $count, 'size' => $size, 'index' => $index];
-    }
-
 }

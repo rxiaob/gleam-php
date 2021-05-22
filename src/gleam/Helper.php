@@ -20,7 +20,6 @@ declare (strict_types=1);
 use gleam\App;
 use gleam\Container;
 use gleam\facade\Request;
-use gleam\facade\Db;
 use gleam\facade\View;
 
 if (!function_exists('app')) {
@@ -351,53 +350,6 @@ if (!function_exists('input')) {
     }
 }
 
-if (!function_exists('head')) {
-    /**
-     * 输出
-     * @param array $header 头部信息
-     * @param int $status 状态码
-     * @return bool
-     */
-    function head($header = [], $status = 200): bool
-    {
-        if (!headers_sent()) {
-            // 发送状态码
-            http_response_code($status);
-            // 发送头部信息
-            if ($header) {
-                foreach ($header as $name => $val) {
-                    header($name . (!is_null($val) ? ':' . $val : ''));
-                }
-            }
-            return true;
-        }
-        return false;
-    }
-}
-
-if (!function_exists('write')) {
-    /**
-     * 输出
-     * @param string $content 内容
-     * @param array $header 头部信息
-     * @param int $status 状态码
-     * @param string $contentType 内容类型
-     * @param string $charset 字符集
-     * @return void
-     */
-    function write(string $content, $header = [], $status = 200, $contentType = 'text/html', $charset = 'utf-8')
-    {
-        head(array_merge($header, [
-            'Content-Type' => $contentType . '; charset=' . $charset
-        ]), $status);
-        echo $content;
-        if (function_exists('fastcgi_finish_request')) {
-            // 提高页面响应
-            fastcgi_finish_request();
-        }
-    }
-}
-
 if (!function_exists('json')) {
     /**
      * 输出Json
@@ -503,22 +455,6 @@ if (!function_exists('download')) {
     }
 }
 
-if (!function_exists('redirect')) {
-    /**
-     * 页面跳转
-     * @param string $url 重定向地址
-     * @param int $status 状态码
-     * @return void
-     */
-    function redirect(string $url, int $status = 302): void
-    {
-        http_response_code($status);
-        header('Cache-control:no-cache,must-revalidate');
-        header('Location:' . $url);
-        exit;
-    }
-}
-
 if (!function_exists('token')) {
     /**
      * 获取Token令牌
@@ -568,74 +504,6 @@ if (!function_exists('request')) {
     function request()
     {
         return app('request');
-    }
-}
-
-if (!function_exists('db')) {
-    /**
-     * 获取数据
-     * @param string $name 数据表名
-     * @return mixed
-     */
-    function db($name = '')
-    {
-        if (empty($name))
-            return Db::class;
-        return Db::name($name);
-    }
-}
-
-if (!function_exists('upload')) {
-    /**
-     * 上传文件
-     * @param array $file 文件信息
-     * @param string $name 保存文件名
-     * @param string $directory 保存路径
-     * @param string $exts 允许上传的文件类型
-     * @param int $size 允许上传的文件大小
-     * @return string
-     * @throws Exception
-     */
-    function upload(array $file, string $name = null, string $directory = null, $exts = null, $size = 0): string
-    {
-        if (empty($file))
-            throw new Exception('未发现上传文件!');
-        if ($file['error'] !== 0) {
-            throw new Exception($file['error']);
-        }
-        $file_name = trim($file['name'] ?? '', '.');
-        if (empty($file_name))
-            throw new Exception('文件名不存在!');
-        if (strpos($file_name, '.') === false)
-            throw new Exception('文件类型不存在!');
-        $file_ext = strtolower(substr($file_name, strrpos($file_name, '.') + 1));
-        if (empty($exts))
-            $exts = 'jpg,jpeg,png,gif';
-        if (!in_array($file_ext, explode(',', $exts))) {
-            throw new Exception('文件类型不正确!');
-        }
-        $file_size = (int)$file['size'];
-        if ($size <= 0)
-            $size = 1024 * 1024 * 2;
-        if ($file_size <= 0)
-            throw new Exception('文件大小不正确!');
-        if ($file_size > $size)
-            throw new Exception('文件大小超过限制!');
-        $root = root_path() . 'uploads';
-        $directory = $directory ?: 'file';
-        $p = '/' . trim($directory, '/') . '/' . date('Ymd') . '/';
-        if (!is_dir($root . $p)) {
-            mkdir($root . $p, 0755, true);
-        }
-        if (!$name) {
-            list($msec, $sec) = explode(' ', microtime());
-            $name = $sec . substr($msec, 2, 4) . '.' . $file_ext;
-        }
-        $f = $root . $p . $name;
-        if (!rename($file['tmp_name'], $f))
-            throw new Exception('上传失败!');
-        $f = '/uploads' . $p . $name;
-        return $f;
     }
 }
 
@@ -768,117 +636,3 @@ if (!function_exists('trace')) {
     }
 }
 
-if (!function_exists('err')) {
-    /**
-     * 抛出错误
-     * @param string $message 错误提示
-     * @param int $code 错误码
-     * @return void
-     */
-    function err($message = '', $code = 0): void
-    {
-        throw new Exception($message, $code);
-    }
-}
-
-if (!function_exists('def')) {
-    /**
-     * 获取默认值
-     * @param mixed $val
-     * @param mixed $def
-     * @return mixed
-     */
-    function def($value, $default)
-    {
-        if (is_string($value)) {
-            return isset($value) && $value != '' ? $value : $default;
-        } elseif (is_numeric($value)) {
-            return $value;
-        } else {
-            return empty($value) ? $default : $value;
-        }
-    }
-}
-
-if (!function_exists('substr_w')) {
-    /**
-     * 获取字符串片段
-     * @param string $str
-     * @param string $left
-     * @param string $right
-     * @return string
-     */
-    function substr_w($str, $left, $right)
-    {
-        $a = strpos($str, $left);
-        if ($a !== false) {
-            $b = strpos($str, $right, $a);
-            if ($b !== false) {
-                return substr($str, $a + 1, $b - $a - 1);
-            }
-        }
-        return '';
-    }
-}
-
-if (!function_exists('encrypt')) {
-    /**
-     * des加密
-     * @param string $str 待加密字符串
-     * @param string $key 密钥
-     * @param string $algorithm 算法
-     * @return string
-     * @throws Exception
-     */
-    function encrypt($str, $key = '', $algorithm = 'DES-ECB'): string
-    {
-        if (empty($str))
-            return '';
-        if (empty($key))
-            $key = env('app_key');
-        if (empty($key))
-            throw new Exception('未设置密钥!');
-        $result = openssl_encrypt($str, $algorithm, $key, 0);
-        if ($result === false)
-            throw new Exception('加密失败!');
-        return $result;
-    }
-}
-
-if (!function_exists('decrypt')) {
-    /**
-     * des解密
-     * @param string $str 待解密字符串
-     * @param string $key 密钥
-     * @param string $algorithm 算法
-     * @return string
-     * @throws Exception
-     */
-    function decrypt($str, $key = '', $algorithm = 'DES-ECB'): string
-    {
-        if (empty($str))
-            return '';
-        if (empty($key))
-            $key = env('app_key');
-        if (empty($key))
-            throw new Exception('未设置密钥!');
-        $result = openssl_decrypt($str, $algorithm, $key, 0);
-        if ($result === false)
-            throw new Exception('解密失败!');
-        return $result;
-    }
-}
-
-if (!function_exists('dd')) {
-    /**
-     * KINT调试
-     * @param array ...$vars
-     * @codeCoverageIgnore
-     */
-    function dd(...$vars)
-    {
-        Kint::$aliases[] = 'dd';
-        Kint::dump(...$vars);
-        exit;
-    }
-}

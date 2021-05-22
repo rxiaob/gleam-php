@@ -89,8 +89,6 @@ class App extends Container
         $this->option['event_file'] = $this->getAppPath() . 'event.php';
         // 服务配置文件
         $this->option['service_file'] = $this->getAppPath() . 'service.php';
-        // 拦截器文件
-        $this->option['intercept_file'] = $this->getAppPath() . 'intercept.php';
 
         if (!empty($option))
             $this->option = array_merge($this->option, $option);
@@ -192,6 +190,7 @@ class App extends Container
 
         // 加载助手函数
         include_once $this->getCorePath() . 'Helper.php';
+        include_once $this->getCorePath() . 'HelperExtend.php';
 
         // 加载环境变量
         $this->env = $this->load_env($this->option['env_file']);
@@ -372,24 +371,6 @@ class App extends Container
     }
 
     /**
-     * 应用处理
-     * @access public
-     * @return App
-     */
-    public function handle(): App
-    {
-        // 启动服务
-        $this->service_boot();
-
-        // 加载拦截器
-        if (is_file($intercept_file = $this->option['intercept_file'])) {
-            include_once $intercept_file;
-        }
-
-        return $this;
-    }
-
-    /**
      * http处理
      * @access public
      * @return App
@@ -398,7 +379,8 @@ class App extends Container
     {
         event('HttpRun');
 
-        $this->handle();
+        // 启动服务
+        $this->service_boot();
 
         // 加载控制器
         $this->load_controller();
@@ -415,34 +397,27 @@ class App extends Container
      */
     protected function load_controller(): bool
     {
-        $path = @$_SERVER['PATH_INFO'];
-        if (empty($path)) {
-            $url = $_SERVER['REQUEST_URI'] . '?';
-            $path = '/' . trim(substr($url, 0, strpos($url, '?')), '/');
-        }
+        $path = uri_path();
         $path = str_replace('..', '', $path);
         $path = preg_replace('/[^a-zA-Z0-9\-\_\/\.]+/', '', $path);
         $path = '/' . trim($path, '/');
         $section = explode('/', $path);
-        $clsfile = '';
+        $clsname = '';
+        $method = '';
         if (is_dir($this->getAppPath() . 'controller')) {
             $controller = !empty($section[1]) ? ucfirst($section[1]) : 'Index';
             $method = !empty($section[2]) ? strtolower($section[2]) : 'index';
-            $clsfile = $this->getAppPath() . 'controller' . DIRECTORY_SEPARATOR . $controller . '.php';
-            $clsname = '\app\controller\\' . $controller;
+            $clsname = 'app\controller\\' . $controller;
         } elseif (!empty($section[1])) {
             $module = strtolower($section[1]);
             $controller = !empty($section[2]) ? ucfirst($section[2]) : 'Index';
             $method = !empty($section[3]) ? strtolower($section[3]) : 'index';
-            $clsfile = $this->getAppPath() . $module . DIRECTORY_SEPARATOR . 'controller' . DIRECTORY_SEPARATOR . $controller . '.php';
             $clsname = '\app\\' . $module . '\controller\\' . $controller;
         }
-        if (is_file($clsfile)) {
-            require_once $clsfile;
+        if (class_exists($clsname)) {
             $cls = new $clsname($this);
-            if (method_exists($cls, $method)) {
-                $result = $cls->$method();
-                //$result = $this->invoke([$cls, $method]);
+            if (method_exists($clsname, $method)) {
+                $result = call_user_func([$cls, $method]);
                 if (is_string($result))
                     echo $result;
                 if (function_exists('fastcgi_finish_request')) {
@@ -483,18 +458,24 @@ class App extends Container
             // 使用ThinkPHP框架，需要完成以下步骤
             // 1.composer require topthink/framework
             // 2.config目录导入TP框架配置文件
+            // 使用Seesion，需要在全局的中间件定义中开启
+            // https://www.kancloud.cn/manual/thinkphp6_0/content
+            define('ENGINE_TP', '1');
             if (!class_exists('\think\App'))
                 throw new \Exception('未检测到ThinkPHP框架');
             $app = new \think\App($rootPath);
+            include_once __DIR__ . DIRECTORY_SEPARATOR . 'HelperExtend.php';
             $http = $app->http;
             $response = $http->run();
+            if ($response->getCode() === 404)
+                event('NotFound');
             $response->send();
             $http->end($response);
         } else {
             $app = new App($rootPath, $option);
             $app->initialize();
-//            if (!env('app_debug', false))
-//                $app->error();
+            if (!env('app_debug', false))
+                $app->error();
             $app->http();
         }
     }
