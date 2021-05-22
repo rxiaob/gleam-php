@@ -2,6 +2,8 @@
 
 Gleam-PHP 是一款简洁的极速开发框架，本框架核心代码源自 ThinkPHP。
 
+![image](raw/main/logo.png)
+
 ## 主要特性
 
 * 轻量级。
@@ -14,7 +16,7 @@ Gleam-PHP 是一款简洁的极速开发框架，本框架核心代码源自 Thi
 ```
 composer create-project rxiaob/gleam-php gleam
 ```
-或者
+或
 ```
 composer require rxiaob/gleam-php
 ```
