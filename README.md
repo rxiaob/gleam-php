@@ -1,8 +1,8 @@
 # gleam-php
 
-Gleam-PHP 是一款简洁的极速开发框架，本框架核心代码源自 ThinkPHP。
-
 ![image](https://github.com/rxiaob/gleam-php/raw/main/logo.png)
+
+Gleam-PHP 是一款简洁的极速开发框架，本框架核心代码源自 ThinkPHP。
 
 ## 主要特性
 
