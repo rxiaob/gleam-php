@@ -25,7 +25,7 @@ class App extends Container
      * 框架版本
      * @var string
      */
-    public const VERSION = '1.0.0';
+    public const VERSION = '1.4.0';
 
     /**
      * 应用配置
