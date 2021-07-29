@@ -377,10 +377,11 @@ class App extends Container
      */
     public function http(): App
     {
-        event('HttpRun');
 
         // 启动服务
         $this->service_boot();
+
+        event('HttpRun');
 
         // 加载控制器
         $this->load_controller();
@@ -393,41 +394,63 @@ class App extends Container
     /**
      * 加载控制器
      * @access protected
+     * @param string $module 模块目录
      * @return bool
      */
-    protected function load_controller(): bool
+    protected function load_controller(string $module = ''): bool
     {
         $path = uri_path();
         $path = str_replace('..', '', $path);
         $path = preg_replace('/[^a-zA-Z0-9\-\_\/\.]+/', '', $path);
         $path = '/' . trim($path, '/');
+
         $section = explode('/', $path);
         $clsname = '';
         $method = '';
-        if (is_dir($this->getAppPath() . 'controller')) {
+
+        if ($module) {
+
+            $controller = !empty($section[1]) ? ucfirst($section[1]) : 'Index';
+            $method = !empty($section[2]) ? strtolower($section[2]) : 'index';
+            $clsname = 'app\\' . $module . '\controller\\' . $controller;
+
+        } else if (is_dir($this->getAppPath() . 'controller')) {
+
             $controller = !empty($section[1]) ? ucfirst($section[1]) : 'Index';
             $method = !empty($section[2]) ? strtolower($section[2]) : 'index';
             $clsname = 'app\controller\\' . $controller;
-        } elseif (!empty($section[1])) {
+
+        } else if (!empty($section[1])) {
+
             $module = strtolower($section[1]);
             $controller = !empty($section[2]) ? ucfirst($section[2]) : 'Index';
             $method = !empty($section[3]) ? strtolower($section[3]) : 'index';
-            $clsname = '\app\\' . $module . '\controller\\' . $controller;
+            $clsname = 'app\\' . $module . '\controller\\' . $controller;
+
         }
+
         if (class_exists($clsname)) {
+
             $cls = new $clsname($this);
+
             if (method_exists($clsname, $method)) {
+
                 $result = call_user_func([$cls, $method]);
+
                 if (is_string($result))
                     echo $result;
+
                 if (function_exists('fastcgi_finish_request')) {
                     // 提高页面响应
                     fastcgi_finish_request();
                 }
+
                 return true;
             }
         }
+
         event('NotFound');
+
         return false;
     }
 
