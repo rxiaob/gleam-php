@@ -391,62 +391,65 @@ class App extends Container
         return $this;
     }
 
+    private $module_name = '';
+
+    /**
+     * 获取模块目录名称
+     * @access public
+     * @return string
+     */
+    public function getModuleName(): string
+    {
+        return $this->module_name;
+    }
+
     /**
      * 加载控制器
      * @access protected
-     * @param string $module 模块目录
+     * @param string $path url路径
      * @return bool
      */
-    protected function load_controller(string $module = ''): bool
+    protected function load_controller(string $path = ''): bool
     {
-        $path = uri_path();
+        $this->module_name = '';
+
+        $path = $path ?: uri_path();
         $path = str_replace('..', '', $path);
         $path = preg_replace('/[^a-zA-Z0-9\-\_\/\.]+/', '', $path);
         $path = '/' . trim($path, '/');
 
         $section = explode('/', $path);
-        $clsname = '';
-        $method = '';
 
-        if ($module) {
-
-            $controller = !empty($section[1]) ? ucfirst($section[1]) : 'Index';
-            $method = !empty($section[2]) ? strtolower($section[2]) : 'index';
-            $clsname = 'app\\' . $module . '\controller\\' . $controller;
-
-        } else if (is_dir($this->getAppPath() . 'controller')) {
-
-            $controller = !empty($section[1]) ? ucfirst($section[1]) : 'Index';
-            $method = !empty($section[2]) ? strtolower($section[2]) : 'index';
-            $clsname = 'app\controller\\' . $controller;
-
-        } else if (!empty($section[1])) {
-
-            $module = strtolower($section[1]);
-            $controller = !empty($section[2]) ? ucfirst($section[2]) : 'Index';
+        if (!empty($section[1]) && !empty($section[2])) {
+            $class = 'app\\' . strtolower($section[1]) . '\controller\\' . ucfirst($section[2]);
             $method = !empty($section[3]) ? strtolower($section[3]) : 'index';
-            $clsname = 'app\\' . $module . '\controller\\' . $controller;
-
+            if (method_exists($class, $method)) {
+                $this->module_name = strtolower($section[1]);
+            } else {
+                $class = 'app\controller\\' . ucfirst($section[1]);
+                $method = strtolower($section[2]);
+            }
+        } elseif (!empty($section[1])) {
+            $class = 'app\controller\\' . ucfirst($section[1]);
+            $method = 'index';
+        } else {
+            $class = 'app\controller\Index';
+            $method = 'index';
         }
 
-        if (class_exists($clsname)) {
+        if (method_exists($class, $method)) {
 
-            $cls = new $clsname($this);
+            $result = call_user_func([new $class($this), $method]);
 
-            if (method_exists($clsname, $method)) {
+            if (is_string($result))
+                echo $result;
 
-                $result = call_user_func([$cls, $method]);
-
-                if (is_string($result))
-                    echo $result;
-
-                if (function_exists('fastcgi_finish_request')) {
-                    // 提高页面响应
-                    fastcgi_finish_request();
-                }
-
-                return true;
+            if (function_exists('fastcgi_finish_request')) {
+                // 提高页面响应
+                fastcgi_finish_request();
             }
+
+            return true;
         }
 
         event('NotFound');

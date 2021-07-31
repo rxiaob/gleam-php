@@ -31,8 +31,8 @@ class View extends Template
     public static function __make(App $app)
     {
         $config = array_merge([
-            'view_path' => $app->getAppPath() . 'view/',
-            'cache_path' => $app->getRuntimePath() . 'temp/',
+            'view_path' => $app->getAppPath() . 'view' . DIRECTORY_SEPARATOR,
+            'cache_path' => $app->getRuntimePath() . 'temp' . DIRECTORY_SEPARATOR,
             'view_suffix' => 'html',
         ], config('view') ?? [
                 // 模板引擎类型使用Think
@@ -54,6 +54,9 @@ class View extends Template
                 // 标签库标签结束标记
                 'taglib_end' => '}',
             ]);
+        if ($module_name = $app->getModuleName()) {
+            $config['view_path'] = $app->getAppPath() . $module_name . DIRECTORY_SEPARATOR . 'view' . DIRECTORY_SEPARATOR;
+        }
         return new static($config);
     }
 
