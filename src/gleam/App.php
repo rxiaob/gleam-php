@@ -25,7 +25,7 @@ class App extends Container
      * 框架版本
      * @var string
      */
-    public const VERSION = '1.4.1';
+    public const VERSION = '1.5.0';
 
     /**
      * 应用配置
@@ -232,6 +232,12 @@ class App extends Container
         if (is_file($file)) {
             $env = parse_ini_file($file, true);
             $env = array_replace_recursive($env, $this->option['env'] ?? []);
+
+            if (empty($env['APP_NAME']))
+                $env['APP_NAME'] = strtolower(basename($this->getRootPath()));
+            if (empty($env['APP_KEY']))
+                $env['APP_KEY'] = md5($this->getRootPath() . 'ORiJxKeQ6mkVSbQKpyJEF5sKQzz8CWVS');
+
             foreach ($env as $key1 => $val1) {
                 $name = strtoupper($key1);
                 if (is_array($val1)) {
@@ -354,19 +360,23 @@ class App extends Container
      */
     public function error(int $level = E_ALL, \Closure $handler = null, \Closure $shutdown = null): App
     {
-        ini_set('display_errors', 'on');
-        error_reporting($level);
+        if (env('app_debug', false)) {
+            ini_set('display_errors', 'on');
+            error_reporting($level);
+        } else {
+            ini_set('display_errors', 'off');
+            error_reporting($level);
 
-        set_exception_handler($handler ?? function (\Exception $ex) {
+            set_exception_handler($handler ?? function (\Exception $ex) {
                 event('AppException', $ex);
             }
-        );
+            );
 
-        register_shutdown_function($shutdown ?? function () {
+            register_shutdown_function($shutdown ?? function () {
                 event('AppShutdown');
             }
-        );
-
+            );
+        }
         return $this;
     }
 
@@ -411,8 +421,6 @@ class App extends Container
      */
     protected function load_controller(string $path = ''): bool
     {
-        $this->module_name = '';
-
         $path = $path ?: uri_path();
         $path = str_replace('..', '', $path);
         $path = preg_replace('/[^a-zA-Z0-9\-\_\/\.]+/', '', $path);
@@ -420,22 +428,8 @@ class App extends Container
 
         $section = explode('/', $path);
 
-        if (!empty($section[1]) && !empty($section[2])) {
-            $class = 'app\\' . strtolower($section[1]) . '\controller\\' . ucfirst($section[2]);
-            $method = !empty($section[3]) ? strtolower($section[3]) : 'index';
-            if (method_exists($class, $method)) {
-                $this->module_name = strtolower($section[1]);
-            } else {
-                $class = 'app\controller\\' . ucfirst($section[1]);
-                $method = strtolower($section[2]);
-            }
-        } elseif (!empty($section[1])) {
-            $class = 'app\controller\\' . ucfirst($section[1]);
-            $method = 'index';
-        } else {
-            $class = 'app\controller\Index';
-            $method = 'index';
-        }
+        [$module, $class, $method] = controller_hanger($path, $section);
+        $this->module_name = $module;
 
         if (method_exists($class, $method)) {
 
@@ -500,8 +494,7 @@ class App extends Container
         } else {
             $app = new App($rootPath, $option);
             $app->initialize();
-            if (!env('app_debug', false))
-                $app->error();
+            $app->error();
             $app->http();
         }
     }

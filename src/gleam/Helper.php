@@ -71,7 +71,7 @@ if (!function_exists('env')) {
      * 获取环境变量值
      * @access public
      * @param string $name 环境变量名
-     * @param string $default 默认值
+     * @param mixed $default 默认值
      * @return mixed
      */
     function env(string $name = '', $default = null)

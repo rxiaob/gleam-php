@@ -160,18 +160,18 @@ if (!function_exists('upload')) {
             throw new Exception('文件类型不存在!');
         $file_ext = strtolower(substr($file_name, strrpos($file_name, '.') + 1));
         if (empty($exts))
-            $exts = 'jpg,jpeg,png,gif';
+            $exts = env('upfile.exts', 'jpg,jpeg,png,gif');
         if (!in_array($file_ext, explode(',', $exts))) {
             throw new Exception('文件类型不正确!');
         }
         $file_size = (int)$file['size'];
         if ($size <= 0)
-            $size = 1024 * 1024 * 2;
+            $size = (int)env('upfile.size', 1024 * 1024 * 2);
         if ($file_size <= 0)
             throw new Exception('文件大小不正确!');
         if ($file_size > $size)
             throw new Exception('文件大小超过限制!');
-        $root = root_path() . 'uploads';
+        $root = root_path() . env('upfile.path', 'public/uploads');
         $directory = $directory ?: 'file';
         $p = '/' . trim($directory, '/') . '/' . date('Ymd') . '/';
         if (!is_dir($root . $p)) {
@@ -287,6 +287,50 @@ if (!function_exists('decrypt')) {
         if ($result === false)
             throw new Exception('解密失败!');
         return $result;
+    }
+}
+
+if (!function_exists('view_path_filter')) {
+    /**
+     * 模板路径过滤
+     * @param string $path 模板路径
+     * @return string
+     */
+    function view_path_filter($path): string
+    {
+        return $path;
+    }
+}
+
+if (!function_exists('controller_hanger')) {
+    /**
+     * 控制器钩子
+     * @param string $path 地址路径
+     * @param array $section 地址解析
+     * @return array
+     */
+    function controller_hanger($path, $section): array
+    {
+        $method = '';
+
+        if (!empty($section[1]) && !empty($section[2])) {
+            $class = 'app\\' . strtolower($section[1]) . '\controller\\' . ucfirst($section[2]);
+            $method = !empty($section[3]) ? strtolower($section[3]) : 'index';
+            if (method_exists($class, $method)) {
+                $module = strtolower($section[1]);
+            } else {
+                $class = 'app\controller\\' . ucfirst($section[1]);
+                $method = strtolower($section[2]);
+            }
+        } elseif (!empty($section[1])) {
+            $class = 'app\controller\\' . ucfirst($section[1]);
+            $method = 'index';
+        } else {
+            $class = 'app\controller\Index';
+            $method = 'index';
+        }
+
+        return [$module, $class, $method];
     }
 }
 
