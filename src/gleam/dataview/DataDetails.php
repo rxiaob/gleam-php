@@ -192,7 +192,7 @@ class DataDetails extends Base
     {
         $s = '<div class="dataderails">';
         if ($title = $this->option['title'] ?? '')
-            $s .= '<div class="dataderails-title">' . $title . '</div>';
+            $s .= '<div class="dataderails-title"><b>' . $title . '</b></div>';
         $s .= self::parse($this->items, $this->option['data'] ?? null, $this->option['format'] ?? null);
         $s .= '</div>';
         return $s;

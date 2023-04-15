@@ -79,7 +79,8 @@ if (!function_exists('env')) {
         if (empty($name))
             return app()->env ?? [];
 
-        $value = getenv(strtoupper($name));
+        $name = strtoupper($name);
+        $value = getenv($name);
 
         if ($value === false)
             $value = $_ENV[$name] ?? false;
