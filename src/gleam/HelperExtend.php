@@ -311,7 +311,7 @@ if (!function_exists('controller_hanger')) {
      */
     function controller_hanger($path, $section): array
     {
-        $method = '';
+        $module = '';
 
         if (!empty($section[1]) && !empty($section[2])) {
             $class = 'app\\' . strtolower($section[1]) . '\controller\\' . ucfirst($section[2]);
