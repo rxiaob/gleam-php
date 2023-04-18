@@ -290,6 +290,19 @@ if (!function_exists('decrypt')) {
     }
 }
 
+if (!function_exists('md5Salt')) {
+    /**
+     * 哈希加盐
+     * @param string $str 密码
+     * @param string $suffix 后缀
+     * @return string
+     */
+    function md5Salt($str, $suffix = '')
+    {
+        return md5($str . $suffix . env('app_key'));
+    }
+}
+
 if (!function_exists('view_path_filter')) {
     /**
      * 模板路径过滤
